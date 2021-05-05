@@ -1,14 +1,26 @@
-const MockERC20 = artifacts.require('MockERC20.sol');
-const ContractName = artifacts.require('ContractName.sol');
+const TokenVesting = artifacts.require('TokenVesting.sol');
+const MeVesting = artifacts.require('MeVesting.sol');
 
 module.exports = async function(deployer) {
-  
-  // Deploy Mock Tokens
-    const tokenA = await MockERC20.new('Token A', 'TKA', web3.utils.toWei('1000'));
-    const tokenB = await MockERC20.new('Token B', 'TKB', web3.utils.toWei('1000'));
 
-  // Deploy ContractName and Make Owner
-    const contractName = await deployer.deploy(ContractName);
-    await tokenA.transferOwnership(contractName.address);
-    await tokenB.transferOwnership(contractName.address);
+  // Deploy TokenVesting and Make Owner
+    const TokenVesting = await deployer.deploy(
+      TokenVesting,
+      process.env.BENEFICIARY_ADDRESS,
+      process.env.START_TIME,
+      process.env.CLIFF_DURATION,
+      process.env.DURATION,
+      process.env.REVOCABLE
+      );
+
+  // Deploy MeVesting
+  const MeVesting = await deployer.deploy(
+    MeVesting,
+    process.env.BENEFICIARY_ADDRESS,
+    process.env.DEPOSIT,
+    process.env.ME_TOKEN,
+    process.env.START_TIME,
+    process.env.UNLOCK_TIME,
+    process.env.STOP_TIME
+    );
 }
