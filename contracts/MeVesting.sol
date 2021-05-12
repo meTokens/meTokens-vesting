@@ -160,6 +160,7 @@ contract meVesting is IERC1620, ReentrancyGuard {
         MathError mathErr;
         uint256 duration;
         uint256 ratePerSecond;
+        // uint256 unlockTime; ??
     }
 
     /**
