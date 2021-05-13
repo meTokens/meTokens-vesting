@@ -11,8 +11,14 @@ import "./libs/IERC1620.sol";
 import "./libs/Types.sol";
 
 
-contract meVesting is IERC1620, ReentrancyGuard {
+contract meVesting is IERC1620, ReentrancyGuard, Ownable {
     /*** Storage Properties ***/
+
+    /// @notice check to enable stream withdrawals
+    bool public withdrawable;
+
+    /// @notice address that can enable withdrawals
+    address public gov;
 
     // accrued interest per IERC20 address
     mapping(address => uint256) private earnings;
@@ -259,6 +265,7 @@ contract meVesting is IERC1620, ReentrancyGuard {
         onlySenderOrRecipient(streamId)
         returns (bool)
     {
+        require(withdrawable, "!withdrawable");
         require(amount > 0, "amount is zero");
         Types.Stream memory stream = streams[streamId];
         WithdrawFromStreamLocalVars memory vars;
@@ -307,5 +314,16 @@ contract meVesting is IERC1620, ReentrancyGuard {
         if (senderBalance > 0) require(token.transfer(stream.sender, senderBalance), "sender token transfer failure");
 
         emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
+    }
+
+    function setGov(address _gov) onlyOwner {
+        require(gov == address(0), "gov already set");
+        gov = _gov;
+    }
+
+    function turnOnWithdrawals() {
+        require(msg.sender == gov, "!gov");
+        require(!withdrawable, "withdrawals already enabled");
+        withdrawable = true;
     }
 }
