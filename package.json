@@ -9,11 +9,11 @@
     "compile:rinkeby": "truffle compile --network rinkeby",
     "test": "npx buidler test",
     "coverage": "npx buidler coverage",
-    "flatten": "truffle-flattener contracts/TokenVesting.sol > flats/TokenVesting_flat.sol && truffle-flattener contracts/MeVesting.sol > flats/MeVesting_flat.sol",
-    "verify": "truffle run verify TokenVesting --network rinkeby --license SPDX-License-Identifier && truffle run verify MeVesting --network rinkeby --license SPDX-License-Identifier"
+    "flatten": "truffle-flattener contracts/MeVesting.sol > flats/MeVesting_flat.sol",
+    "verify": "truffle run verify MeVesting --network rinkeby --license SPDX-License-Identifier"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^3.0.0",
+    "@openzeppelin/contracts": "^2.5.0",
     "@openzeppelin/test-helpers": "^0.5.6",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",

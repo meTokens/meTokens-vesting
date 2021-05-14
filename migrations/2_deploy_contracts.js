@@ -15,12 +15,12 @@ module.exports = async function(deployer) {
 
   // Deploy MeVesting
   const MeVesting = await deployer.deploy(
-    MeVesting,
-    process.env.BENEFICIARY_ADDRESS,
-    process.env.DEPOSIT,
-    process.env.ME_TOKEN,
-    process.env.START_TIME,
-    process.env.UNLOCK_TIME,
-    process.env.STOP_TIME
+    MeVesting//,
+    // process.env.BENEFICIARY_ADDRESS,
+    // process.env.DEPOSIT,
+    // process.env.ME_TOKEN,
+    // process.env.START_TIME,
+    // process.env.UNLOCK_TIME,
+    // process.env.STOP_TIME
     );
 }

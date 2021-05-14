@@ -8,7 +8,6 @@ library Types {
         uint256 ratePerSecond;
         uint256 remainingBalance;
         uint256 startTime;
-        uint256 unlockTime;
         uint256 stopTime;
         address recipient;
         address sender;

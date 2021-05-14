@@ -1,285 +1,10 @@
-yarn run v1.22.10
-$ /Users/Uni/Documents/GitHub/meTokens/meTokens-vesting/node_modules/.bin/truffle-flattener contracts/MeVesting.sol
-// File: @openzeppelin/contracts-ethereum-package/contracts/Initializable.sol
+// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity >=0.4.24 <0.7.0;
-
+pragma solidity ^0.5.0;
 
 /**
- * @title Initializable
- *
- * @dev Helper contract to support initializer functions. To use it, replace
- * the constructor with a function that has the `initializer` modifier.
- * WARNING: Unlike constructors, initializer functions must be manually
- * invoked. This applies both to deploying an Initializable contract, as well
- * as extending an Initializable contract via inheritance.
- * WARNING: When used with inheritance, manual care must be taken to not invoke
- * a parent initializer twice, or ensure that all initializers are idempotent,
- * because this is not dealt with automatically as with constructors.
- */
-contract Initializable {
-
-  /**
-   * @dev Indicates that the contract has been initialized.
-   */
-  bool private initialized;
-
-  /**
-   * @dev Indicates that the contract is in the process of being initialized.
-   */
-  bool private initializing;
-
-  /**
-   * @dev Modifier to use in the initializer function of a contract.
-   */
-  modifier initializer() {
-    require(initializing || isConstructor() || !initialized, "Contract instance has already been initialized");
-
-    bool isTopLevelCall = !initializing;
-    if (isTopLevelCall) {
-      initializing = true;
-      initialized = true;
-    }
-
-    _;
-
-    if (isTopLevelCall) {
-      initializing = false;
-    }
-  }
-
-  /// @dev Returns true if and only if the function is running in the constructor
-  function isConstructor() private view returns (bool) {
-    // extcodesize checks the size of the code stored in an address, and
-    // address returns the current address. Since the code is still not
-    // deployed when running a constructor, any checks on its code size will
-    // yield zero, making it an effective way to detect if a contract is
-    // under construction or not.
-    address self = address(this);
-    uint256 cs;
-    assembly { cs := extcodesize(self) }
-    return cs == 0;
-  }
-
-  // Reserved storage space to allow for layout changes in the future.
-  uint256[50] private ______gap;
-}
-
-// File: @openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol
-
-pragma solidity ^0.6.0;
-
-
-/*
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with GSN meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-contract ContextUpgradeSafe is Initializable {
-    // Empty internal constructor, to prevent people from mistakenly deploying
-    // an instance of this contract, which should be used via inheritance.
-
-    function __Context_init() internal initializer {
-        __Context_init_unchained();
-    }
-
-    function __Context_init_unchained() internal initializer {
-
-
-    }
-
-
-    function _msgSender() internal view virtual returns (address payable) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes memory) {
-        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
-        return msg.data;
-    }
-
-    uint256[50] private __gap;
-}
-
-// File: @openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol
-
-pragma solidity ^0.6.0;
-
-
-
-/**
- * @dev Contract module which allows children to implement an emergency stop
- * mechanism that can be triggered by an authorized account.
- *
- * This module is used through inheritance. It will make available the
- * modifiers `whenNotPaused` and `whenPaused`, which can be applied to
- * the functions of your contract. Note that they will not be pausable by
- * simply including this module, only once the modifiers are put in place.
- */
-contract PausableUpgradeSafe is Initializable, ContextUpgradeSafe {
-    /**
-     * @dev Emitted when the pause is triggered by `account`.
-     */
-    event Paused(address account);
-
-    /**
-     * @dev Emitted when the pause is lifted by `account`.
-     */
-    event Unpaused(address account);
-
-    bool private _paused;
-
-    /**
-     * @dev Initializes the contract in unpaused state.
-     */
-
-    function __Pausable_init() internal initializer {
-        __Context_init_unchained();
-        __Pausable_init_unchained();
-    }
-
-    function __Pausable_init_unchained() internal initializer {
-
-
-        _paused = false;
-
-    }
-
-
-    /**
-     * @dev Returns true if the contract is paused, and false otherwise.
-     */
-    function paused() public view returns (bool) {
-        return _paused;
-    }
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is not paused.
-     */
-    modifier whenNotPaused() {
-        require(!_paused, "Pausable: paused");
-        _;
-    }
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is paused.
-     */
-    modifier whenPaused() {
-        require(_paused, "Pausable: not paused");
-        _;
-    }
-
-    /**
-     * @dev Triggers stopped state.
-     */
-    function _pause() internal virtual whenNotPaused {
-        _paused = true;
-        emit Paused(_msgSender());
-    }
-
-    /**
-     * @dev Returns to normal state.
-     */
-    function _unpause() internal virtual whenPaused {
-        _paused = false;
-        emit Unpaused(_msgSender());
-    }
-
-    uint256[49] private __gap;
-}
-
-// File: @openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol
-
-pragma solidity ^0.6.0;
-
-
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-contract OwnableUpgradeSafe is Initializable, ContextUpgradeSafe {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-
-    function __Ownable_init() internal initializer {
-        __Context_init_unchained();
-        __Ownable_init_unchained();
-    }
-
-    function __Ownable_init_unchained() internal initializer {
-
-
-        address msgSender = _msgSender();
-        _owner = msgSender;
-        emit OwnershipTransferred(address(0), msgSender);
-
-    }
-
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(_owner == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        emit OwnershipTransferred(_owner, newOwner);
-        _owner = newOwner;
-    }
-
-    uint256[49] private __gap;
-}
-
-// File: @openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol
-
-pragma solidity ^0.6.0;
-
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
+ * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
+ * the optional functions; to access them see {ERC20Detailed}.
  */
 interface IERC20 {
     /**
@@ -354,9 +79,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/utils/ReentrancyGuard.sol
 
-// SPDX-License-Identifier: MIT
-
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity ^0.5.0;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -373,26 +96,21 @@ pragma solidity >=0.6.0 <0.8.0;
  * TIP: If you would like to learn more about reentrancy and alternative ways
  * to protect against it, check out our blog post
  * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ *
+ * _Since v2.5.0:_ this module is now much more gas efficient, given net gas
+ * metering changes introduced in the Istanbul hardfork.
  */
-abstract contract ReentrancyGuard {
-    // Booleans are more expensive than uint256 or any type that takes up a full
-    // word because each write operation emits an extra SLOAD to first read the
-    // slot's contents, replace the bits taken up by the boolean, and then write
-    // back. This is the compiler's defense against contract upgrades and
-    // pointer aliasing, and it cannot be disabled.
-
-    // The values being non-zero value makes deployment a bit more expensive,
-    // but in exchange the refund on every call to nonReentrant will be lower in
-    // amount. Since refunds are capped to a percentage of the total
-    // transaction's gas, it is best to keep them low in cases like this one, to
-    // increase the likelihood of the full refund coming into effect.
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-
-    uint256 private _status;
+contract ReentrancyGuard {
+    bool private _notEntered;
 
     constructor () internal {
-        _status = _NOT_ENTERED;
+        // Storing an initial non-zero value makes deployment a bit more
+        // expensive, but in exchange the refund on every call to nonReentrant
+        // will be lower in amount. Since refunds are capped to a percetange of
+        // the total transaction's gas, it is best to keep them low in cases
+        // like this one, to increase the likelihood of the full refund coming
+        // into effect.
+        _notEntered = true;
     }
 
     /**
@@ -404,16 +122,16 @@ abstract contract ReentrancyGuard {
      */
     modifier nonReentrant() {
         // On the first call to nonReentrant, _notEntered will be true
-        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+        require(_notEntered, "ReentrancyGuard: reentrant call");
 
         // Any calls to nonReentrant after this point will fail
-        _status = _ENTERED;
+        _notEntered = false;
 
         _;
 
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
-        _status = _NOT_ENTERED;
+        _notEntered = true;
     }
 }
 
@@ -421,7 +139,7 @@ abstract contract ReentrancyGuard {
 
 //SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.5.12;
 
 /**
  * @title ERC-1620 Money Streaming Standard
@@ -438,7 +156,6 @@ interface IERC1620 {
         uint256 deposit,
         address tokenAddress,
         uint256 startTime,
-        uint256 unlockTime,
         uint256 stopTime
     );
 
@@ -472,7 +189,6 @@ interface IERC1620 {
             uint256 deposit,
             address token,
             uint256 startTime,
-            uint256 unlockTime,
             uint256 stopTime,
             uint256 remainingBalance,
             uint256 ratePerSecond
@@ -483,7 +199,6 @@ interface IERC1620 {
         uint256 deposit,
         address tokenAddress,
         uint256 startTime,
-        uint256 unlockTime,
         uint256 stopTime
     ) external returns (uint256 streamId);
 
@@ -492,6 +207,94 @@ interface IERC1620 {
         returns (bool);
 
     function cancelStream(uint256 streamId) external returns (bool);
+}
+
+// File: contracts/libs/CarefulMath.sol
+
+pragma solidity ^0.5.8;
+
+/**
+  * @title Careful Math
+  * @author Compound
+  * @notice Derived from OpenZeppelin's SafeMath library
+  *         https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/math/SafeMath.sol
+  */
+contract CarefulMath {
+
+    /**
+     * @dev Possible error codes that we can return
+     */
+    enum MathError {
+        NO_ERROR,
+        DIVISION_BY_ZERO,
+        INTEGER_OVERFLOW,
+        INTEGER_UNDERFLOW
+    }
+
+    /**
+    * @dev Multiplies two numbers, returns an error on overflow.
+    */
+    function mulUInt(uint a, uint b) internal pure returns (MathError, uint) {
+        if (a == 0) {
+            return (MathError.NO_ERROR, 0);
+        }
+
+        uint c = a * b;
+
+        if (c / a != b) {
+            return (MathError.INTEGER_OVERFLOW, 0);
+        } else {
+            return (MathError.NO_ERROR, c);
+        }
+    }
+
+    /**
+    * @dev Integer division of two numbers, truncating the quotient.
+    */
+    function divUInt(uint a, uint b) internal pure returns (MathError, uint) {
+        if (b == 0) {
+            return (MathError.DIVISION_BY_ZERO, 0);
+        }
+
+        return (MathError.NO_ERROR, a / b);
+    }
+
+    /**
+    * @dev Subtracts two numbers, returns an error on overflow (i.e. if subtrahend is greater than minuend).
+    */
+    function subUInt(uint a, uint b) internal pure returns (MathError, uint) {
+        if (b <= a) {
+            return (MathError.NO_ERROR, a - b);
+        } else {
+            return (MathError.INTEGER_UNDERFLOW, 0);
+        }
+    }
+
+    /**
+    * @dev Adds two numbers, returns an error on overflow.
+    */
+    function addUInt(uint a, uint b) internal pure returns (MathError, uint) {
+        uint c = a + b;
+
+        if (c >= a) {
+            return (MathError.NO_ERROR, c);
+        } else {
+            return (MathError.INTEGER_OVERFLOW, 0);
+        }
+    }
+
+    /**
+    * @dev add a and b and then subtract c
+    */
+    function addThenSubUInt(uint a, uint b, uint c) internal pure returns (MathError, uint) {
+        (MathError err0, uint sum) = addUInt(a, b);
+
+        if (err0 != MathError.NO_ERROR) {
+            return (err0, 0);
+        }
+
+        return subUInt(sum, c);
+    }
 }
 
 // File: contracts/libs/Types.sol
@@ -506,7 +309,6 @@ library Types {
         uint256 ratePerSecond;
         uint256 remainingBalance;
         uint256 startTime;
-        uint256 unlockTime;
         uint256 stopTime;
         address recipient;
         address sender;
@@ -521,23 +323,17 @@ library Types {
 
 pragma solidity ^0.5.12;
 
-
-
-
-
-
-
-
-contract meVesting is IERC1620, ReentrancyGuard {
+contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
+
+    /// @notice check to enable stream withdrawals
+    bool public withdrawable;
+
+    /// @notice address that can enable withdrawals
+    address public gov = msg.sender;
 
     // accrued interest per IERC20 address
     mapping(address => uint256) private earnings;
-
-    /**
-     * @notice The percentage fee charged by the contract on the accrued interest.
-     */
-    Exp public fee;
 
     /**
      * @notice Counter for new stream ids.
@@ -594,7 +390,6 @@ contract meVesting is IERC1620, ReentrancyGuard {
             uint256 deposit,
             address tokenAddress,
             uint256 startTime,
-            uint256 unlockTime,
             uint256 stopTime,
             uint256 remainingBalance,
             uint256 ratePerSecond
@@ -605,7 +400,6 @@ contract meVesting is IERC1620, ReentrancyGuard {
         deposit = streams[streamId].deposit;
         tokenAddress = streams[streamId].tokenAddress;
         startTime = streams[streamId].startTime;
-        unlockTime = streams[streamId].unlockTime;
         stopTime = streams[streamId].stopTime;
         remainingBalance = streams[streamId].remainingBalance;
         ratePerSecond = streams[streamId].ratePerSecond;
@@ -697,11 +491,10 @@ contract meVesting is IERC1620, ReentrancyGuard {
      * @param deposit The amount of money to be streamed.
      * @param tokenAddress The ERC20 token to use as streaming currency.
      * @param startTime The unix timestamp for when the stream starts accumulating a pending stream balance.
-     * @param unlockTime The unix timestamp for when the stream unlocks.
      * @param stopTime The unix timestamp for when the stream stops.
      * @return The uint256 id of the newly created stream.
      */
-    function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 unlockTime, uint256 stopTime)
+    function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime)
         public
         returns (uint256)
     {
@@ -710,10 +503,8 @@ contract meVesting is IERC1620, ReentrancyGuard {
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
         require(startTime >= block.timestamp, "start time before block.timestamp");
-        require(unlockTime >= block.timestamp, "unlock time before block.timestamp");
 
         require(stopTime > startTime, "stop time before the start time");
-        require(stopTime > unlockTime, "stop time before the start unlock");
 
         CreateStreamLocalVars memory vars;
         (vars.mathErr, vars.duration) = subUInt(stopTime, startTime);
@@ -740,7 +531,6 @@ contract meVesting is IERC1620, ReentrancyGuard {
             recipient: recipient,
             sender: msg.sender,
             startTime: startTime,
-            unlockTime: unlockTime,
             stopTime: stopTime,
             tokenAddress: tokenAddress
         });
@@ -750,7 +540,7 @@ contract meVesting is IERC1620, ReentrancyGuard {
         require(vars.mathErr == MathError.NO_ERROR, "next stream id calculation error");
 
         require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), deposit), "token transfer failure");
-        emit CreateStream(streamId, msg.sender, recipient, deposit, tokenAddress, startTime, unlockTime, stopTime);
+        emit CreateStream(streamId, msg.sender, recipient, deposit, tokenAddress, startTime, stopTime);
         return streamId;
     }
 
@@ -775,13 +565,13 @@ contract meVesting is IERC1620, ReentrancyGuard {
         onlySenderOrRecipient(streamId)
         returns (bool)
     {
+        require(withdrawable, "not withdrawable");
         require(amount > 0, "amount is zero");
         Types.Stream memory stream = streams[streamId];
         WithdrawFromStreamLocalVars memory vars;
 
         uint256 balance = balanceOf(streamId, stream.recipient);
         require(balance >= amount, "amount exceeds the available balance");
-        require(block.timestamp >= unlockTime, 'too soon to withdraw');
 
         (vars.mathErr, streams[streamId].remainingBalance) = subUInt(stream.remainingBalance, amount);
         /**
@@ -824,5 +614,15 @@ contract meVesting is IERC1620, ReentrancyGuard {
 
         emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
     }
+
+    function setGov(address _gov) public {
+        require(msg.sender == gov, "gov: must gov");
+        gov = _gov;
+    }
+
+    function turnOnWithdrawals() public {
+        require(msg.sender == gov, "!gov");
+        require(!withdrawable, "withdrawals already enabled");
+        withdrawable = true;
+    }
 }
-Done in 0.98s.

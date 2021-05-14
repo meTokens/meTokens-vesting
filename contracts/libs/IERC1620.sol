@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.5.12;
 
 /**
  * @title ERC-1620 Money Streaming Standard
@@ -17,7 +17,6 @@ interface IERC1620 {
         uint256 deposit,
         address tokenAddress,
         uint256 startTime,
-        uint256 unlockTime,
         uint256 stopTime
     );
 
@@ -51,7 +50,6 @@ interface IERC1620 {
             uint256 deposit,
             address token,
             uint256 startTime,
-            uint256 unlockTime,
             uint256 stopTime,
             uint256 remainingBalance,
             uint256 ratePerSecond
@@ -62,7 +60,6 @@ interface IERC1620 {
         uint256 deposit,
         address tokenAddress,
         uint256 startTime,
-        uint256 unlockTime,
         uint256 stopTime
     ) external returns (uint256 streamId);
 

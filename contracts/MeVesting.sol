@@ -2,31 +2,26 @@
 
 pragma solidity ^0.5.12;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+
 import "./libs/IERC1620.sol";
+import "./libs/CarefulMath.sol";
 import "./libs/Types.sol";
 
 
-contract meVesting is IERC1620, ReentrancyGuard, Ownable {
+contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
 
     /// @notice check to enable stream withdrawals
     bool public withdrawable;
 
     /// @notice address that can enable withdrawals
-    address public gov;
+    address public gov = msg.sender;
 
     // accrued interest per IERC20 address
     mapping(address => uint256) private earnings;
-
-    /**
-     * @notice The percentage fee charged by the contract on the accrued interest.
-     */
-    Exp public fee;
 
     /**
      * @notice Counter for new stream ids.
@@ -83,7 +78,6 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
             uint256 deposit,
             address tokenAddress,
             uint256 startTime,
-            uint256 unlockTime,
             uint256 stopTime,
             uint256 remainingBalance,
             uint256 ratePerSecond
@@ -94,7 +88,6 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
         deposit = streams[streamId].deposit;
         tokenAddress = streams[streamId].tokenAddress;
         startTime = streams[streamId].startTime;
-        unlockTime = streams[streamId].unlockTime;
         stopTime = streams[streamId].stopTime;
         remainingBalance = streams[streamId].remainingBalance;
         ratePerSecond = streams[streamId].ratePerSecond;
@@ -166,7 +159,6 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
         MathError mathErr;
         uint256 duration;
         uint256 ratePerSecond;
-        // uint256 unlockTime; ??
     }
 
     /**
@@ -187,11 +179,10 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
      * @param deposit The amount of money to be streamed.
      * @param tokenAddress The ERC20 token to use as streaming currency.
      * @param startTime The unix timestamp for when the stream starts accumulating a pending stream balance.
-     * @param unlockTime The unix timestamp for when the stream unlocks.
      * @param stopTime The unix timestamp for when the stream stops.
      * @return The uint256 id of the newly created stream.
      */
-    function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 unlockTime, uint256 stopTime)
+    function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime)
         public
         returns (uint256)
     {
@@ -200,10 +191,8 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
         require(startTime >= block.timestamp, "start time before block.timestamp");
-        require(unlockTime >= block.timestamp, "unlock time before block.timestamp");
 
         require(stopTime > startTime, "stop time before the start time");
-        require(stopTime > unlockTime, "stop time before the start unlock");
 
         CreateStreamLocalVars memory vars;
         (vars.mathErr, vars.duration) = subUInt(stopTime, startTime);
@@ -230,7 +219,6 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
             recipient: recipient,
             sender: msg.sender,
             startTime: startTime,
-            unlockTime: unlockTime,
             stopTime: stopTime,
             tokenAddress: tokenAddress
         });
@@ -240,7 +228,7 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
         require(vars.mathErr == MathError.NO_ERROR, "next stream id calculation error");
 
         require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), deposit), "token transfer failure");
-        emit CreateStream(streamId, msg.sender, recipient, deposit, tokenAddress, startTime, unlockTime, stopTime);
+        emit CreateStream(streamId, msg.sender, recipient, deposit, tokenAddress, startTime, stopTime);
         return streamId;
     }
 
@@ -265,14 +253,13 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
         onlySenderOrRecipient(streamId)
         returns (bool)
     {
-        require(withdrawable, "!withdrawable");
+        require(withdrawable, "not withdrawable");
         require(amount > 0, "amount is zero");
         Types.Stream memory stream = streams[streamId];
         WithdrawFromStreamLocalVars memory vars;
 
         uint256 balance = balanceOf(streamId, stream.recipient);
         require(balance >= amount, "amount exceeds the available balance");
-        require(block.timestamp >= unlockTime, 'too soon to withdraw');
 
         (vars.mathErr, streams[streamId].remainingBalance) = subUInt(stream.remainingBalance, amount);
         /**
@@ -316,12 +303,12 @@ contract meVesting is IERC1620, ReentrancyGuard, Ownable {
         emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
     }
 
-    function setGov(address _gov) onlyOwner {
-        require(gov == address(0), "gov already set");
+    function setGov(address _gov) public {
+        require(msg.sender == gov, "gov: must gov");
         gov = _gov;
     }
 
-    function turnOnWithdrawals() {
+    function turnOnWithdrawals() public {
         require(msg.sender == gov, "!gov");
         require(!withdrawable, "withdrawals already enabled");
         withdrawable = true;
