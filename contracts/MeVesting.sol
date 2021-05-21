@@ -2,16 +2,15 @@
 
 pragma solidity ^0.5.12;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-
+import "./libs/IERC20.sol";
 import "./libs/IERC1620.sol";
 import "./libs/CarefulMath.sol";
 import "./libs/Types.sol";
 
 
-contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
+contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
 
     /// @notice check to enable stream withdrawals

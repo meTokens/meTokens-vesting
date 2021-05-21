@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: MIT
+
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
@@ -136,8 +138,6 @@ contract ReentrancyGuard {
 }
 
 // File: contracts/libs/IERC1620.sol
-
-//SPDX-License-Identifier: MIT
 
 pragma solidity ^0.5.12;
 
@@ -299,8 +299,6 @@ contract CarefulMath {
 
 // File: contracts/libs/Types.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.5.12;
 
 library Types {
@@ -317,13 +315,11 @@ library Types {
     }
 }
 
-// File: contracts/MeVesting.sol
-
-// SPDX-License-Identifier: MIT
+// File: contracts/meVesting.sol
 
 pragma solidity ^0.5.12;
 
-contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
+contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
 
     /// @notice check to enable stream withdrawals
