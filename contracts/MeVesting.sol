@@ -19,9 +19,6 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /// @notice address that can enable withdrawals
     address public gov = msg.sender;
 
-    // accrued interest per IERC20 address
-    mapping(address => uint256) private earnings;
-
     /**
      * @notice Counter for new stream ids.
      */
