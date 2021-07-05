@@ -17,7 +17,7 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
     bool public withdrawable;
 
     /// @notice address that can enable withdrawals
-    address public gov = msg.sender;
+    address public gov;
 
     /**
      * @notice Counter for new stream ids.
@@ -54,6 +54,7 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
 
     constructor() public {
         nextStreamId = 1;
+        gov = msg.sender;
     }
 
     /*** View Functions ***/
