@@ -504,8 +504,8 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
-        
-        uint256 startTime = block.timestamp.min(5392000);
+
+        uint256 startTime = block.timestamp.sub(5392000);
         uint256 stopTime = block.timestamp.add(1095 days);
 
         require(stopTime > startTime, "stop time before the start time");
