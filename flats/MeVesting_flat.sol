@@ -1,12 +1,69 @@
-// SPDX-License-Identifier: MIT
+// File: @openzeppelin/contracts/utils/ReentrancyGuard.sol
 
-// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+pragma solidity ^0.5.0;
+
+/**
+ * @dev Contract module that helps prevent reentrant calls to a function.
+ *
+ * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
+ * available, which can be applied to functions to make sure there are no nested
+ * (reentrant) calls to them.
+ *
+ * Note that because there is a single `nonReentrant` guard, functions marked as
+ * `nonReentrant` may not call one another. This can be worked around by making
+ * those functions `private`, and then adding `external` `nonReentrant` entry
+ * points to them.
+ *
+ * TIP: If you would like to learn more about reentrancy and alternative ways
+ * to protect against it, check out our blog post
+ * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ *
+ * _Since v2.5.0:_ this module is now much more gas efficient, given net gas
+ * metering changes introduced in the Istanbul hardfork.
+ */
+contract ReentrancyGuard {
+    bool private _notEntered;
+
+    constructor () internal {
+        // Storing an initial non-zero value makes deployment a bit more
+        // expensive, but in exchange the refund on every call to nonReentrant
+        // will be lower in amount. Since refunds are capped to a percetange of
+        // the total transaction's gas, it is best to keep them low in cases
+        // like this one, to increase the likelihood of the full refund coming
+        // into effect.
+        _notEntered = true;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     * Calling a `nonReentrant` function from another `nonReentrant`
+     * function is not supported. It is possible to prevent this from happening
+     * by making the `nonReentrant` function external, and make it call a
+     * `private` function that does the actual work.
+     */
+    modifier nonReentrant() {
+        // On the first call to nonReentrant, _notEntered will be true
+        require(_notEntered, "ReentrancyGuard: reentrant call");
+
+        // Any calls to nonReentrant after this point will fail
+        _notEntered = false;
+
+        _;
+
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _notEntered = true;
+    }
+}
+
+// File: contracts/libs/IERC20.sol
+
+//SPDX-License-Identifier: MIT
 
 pragma solidity ^0.5.12;
 
 /**
- * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
- * the optional functions; to access them see {ERC20Detailed}.
+ * @dev Interface of the ERC20 standard as defined in the EIP.
  */
 interface IERC20 {
     /**
@@ -79,65 +136,9 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// File: @openzeppelin/contracts/utils/ReentrancyGuard.sol
-
-pragma solidity ^0.5.0;
-
-/**
- * @dev Contract module that helps prevent reentrant calls to a function.
- *
- * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
- * available, which can be applied to functions to make sure there are no nested
- * (reentrant) calls to them.
- *
- * Note that because there is a single `nonReentrant` guard, functions marked as
- * `nonReentrant` may not call one another. This can be worked around by making
- * those functions `private`, and then adding `external` `nonReentrant` entry
- * points to them.
- *
- * TIP: If you would like to learn more about reentrancy and alternative ways
- * to protect against it, check out our blog post
- * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
- *
- * _Since v2.5.0:_ this module is now much more gas efficient, given net gas
- * metering changes introduced in the Istanbul hardfork.
- */
-contract ReentrancyGuard {
-    bool private _notEntered;
-
-    constructor () internal {
-        // Storing an initial non-zero value makes deployment a bit more
-        // expensive, but in exchange the refund on every call to nonReentrant
-        // will be lower in amount. Since refunds are capped to a percetange of
-        // the total transaction's gas, it is best to keep them low in cases
-        // like this one, to increase the likelihood of the full refund coming
-        // into effect.
-        _notEntered = true;
-    }
-
-    /**
-     * @dev Prevents a contract from calling itself, directly or indirectly.
-     * Calling a `nonReentrant` function from another `nonReentrant`
-     * function is not supported. It is possible to prevent this from happening
-     * by making the `nonReentrant` function external, and make it call a
-     * `private` function that does the actual work.
-     */
-    modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
-        require(_notEntered, "ReentrancyGuard: reentrant call");
-
-        // Any calls to nonReentrant after this point will fail
-        _notEntered = false;
-
-        _;
-
-        // By storing the original value once again, a refund is triggered (see
-        // https://eips.ethereum.org/EIPS/eip-2200)
-        _notEntered = true;
-    }
-}
-
 // File: contracts/libs/IERC1620.sol
+
+//SPDX-License-Identifier: MIT
 
 pragma solidity ^0.5.12;
 
@@ -299,6 +300,8 @@ contract CarefulMath {
 
 // File: contracts/libs/Types.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.5.12;
 
 library Types {
@@ -315,9 +318,17 @@ library Types {
     }
 }
 
-// File: contracts/meVesting.sol
+// File: contracts/MeVesting.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.5.12;
+
+
+
+
+
+
 
 contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
@@ -326,10 +337,7 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
     bool public withdrawable;
 
     /// @notice address that can enable withdrawals
-    address public gov = msg.sender;
-
-    // accrued interest per IERC20 address
-    mapping(address => uint256) private earnings;
+    address public gov;
 
     /**
      * @notice Counter for new stream ids.
@@ -366,6 +374,7 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
 
     constructor() public {
         nextStreamId = 1;
+        gov = msg.sender;
     }
 
     /*** View Functions ***/
@@ -490,15 +499,14 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
      * @param stopTime The unix timestamp for when the stream stops.
      * @return The uint256 id of the newly created stream.
      */
-    function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime)
-        public
-        returns (uint256)
-    {
+    function createStream(address recipient, uint256 deposit, address tokenAddress) public returns (uint256) {
         require(recipient != address(0x00), "stream to the zero address");
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
-        require(startTime >= block.timestamp, "start time before block.timestamp");
+        
+        uint256 startTime = block.timestamp.min(5392000);
+        uint256 stopTime = block.timestamp.add(1095 days);
 
         require(stopTime > startTime, "stop time before the start time");
 
