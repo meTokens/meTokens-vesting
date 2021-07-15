@@ -175,8 +175,6 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
      * @param recipient The address towards which the money is streamed.
      * @param deposit The amount of money to be streamed.
      * @param tokenAddress The ERC20 token to use as streaming currency.
-     * @param startTime The unix timestamp for when the stream starts accumulating a pending stream balance.
-     * @param stopTime The unix timestamp for when the stream stops.
      * @return The uint256 id of the newly created stream.
      */
     function createStream(address recipient, uint256 deposit, address tokenAddress) public returns (uint256) {
@@ -185,8 +183,8 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
 
-        uint256 startTime = block.timestamp.sub(5392000);
-        uint256 stopTime = block.timestamp.add(1095 days);
+        uint256 startTime = block.timestamp - 5392000;
+        uint256 stopTime = block.timestamp + 1095 days;
 
         require(stopTime > startTime, "stop time before the start time");
 
@@ -285,6 +283,7 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
         onlySenderOrRecipient(streamId)
         returns (bool)
     {
+        require(withdrawable, "not withdrawable");
         Types.Stream memory stream = streams[streamId];
         uint256 senderBalance = balanceOf(streamId, stream.sender);
         uint256 recipientBalance = balanceOf(streamId, stream.recipient);
