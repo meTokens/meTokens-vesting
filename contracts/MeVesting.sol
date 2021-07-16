@@ -10,7 +10,7 @@ import "./libs/CarefulMath.sol";
 import "./libs/Types.sol";
 
 
-contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
+contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
 
     /// @notice check to enable stream withdrawals
@@ -175,19 +175,16 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
      * @param recipient The address towards which the money is streamed.
      * @param deposit The amount of money to be streamed.
      * @param tokenAddress The ERC20 token to use as streaming currency.
-     * @param startTime The unix timestamp for when the stream starts accumulating a pending stream balance.
-     * @param stopTime The unix timestamp for when the stream stops.
      * @return The uint256 id of the newly created stream.
      */
-    function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime)
-        public
-        returns (uint256)
-    {
+    function createStream(address recipient, uint256 deposit, address tokenAddress) public returns (uint256) {
         require(recipient != address(0x00), "stream to the zero address");
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
-        require(startTime >= block.timestamp, "start time before block.timestamp");
+
+        uint256 startTime = block.timestamp - 5392000;
+        uint256 stopTime = block.timestamp + 1095 days;
 
         require(stopTime > startTime, "stop time before the start time");
 
@@ -286,6 +283,7 @@ contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
         onlySenderOrRecipient(streamId)
         returns (bool)
     {
+        require(withdrawable, "not withdrawable");
         Types.Stream memory stream = streams[streamId];
         uint256 senderBalance = balanceOf(streamId, stream.sender);
         uint256 recipientBalance = balanceOf(streamId, stream.recipient);

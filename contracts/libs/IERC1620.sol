@@ -58,9 +58,7 @@ interface IERC1620 {
     function createStream(
         address recipient,
         uint256 deposit,
-        address tokenAddress,
-        uint256 startTime,
-        uint256 stopTime
+        address tokenAddress
     ) external returns (uint256 streamId);
 
     function withdrawFromStream(uint256 streamId, uint256 funds)
