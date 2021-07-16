@@ -10,7 +10,7 @@ import "./libs/CarefulMath.sol";
 import "./libs/Types.sol";
 
 
-contract meVesting is IERC1620, ReentrancyGuard, CarefulMath {
+contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
     /*** Storage Properties ***/
 
     /// @notice check to enable stream withdrawals

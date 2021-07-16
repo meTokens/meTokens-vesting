@@ -18,8 +18,8 @@ module.exports = {
     networks: {
         hardhat: {
             forking: {
-                url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-                accounts: [`${process.env.PRIVATE_KEY}`,]
+                url: `https://eth-mainnet.alchemyapi.io/v2/...`,
+                accounts: [`...`,]
             },
             gas: 'auto',
             blockGasLimit: 0x1fffffffffffff,
@@ -27,14 +27,14 @@ module.exports = {
             timeout: 1800000,
         },
         mainnet: {
-            url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-            accounts: [`${process.env.PRIVATE_KEY}`,]
+            url: `https://eth-mainnet.alchemyapi.io/v2/...`,
+            accounts: [`...`,]
         },
 
     },
     etherscan: {
-        url: String(`https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`),
-        apiKey: process.env.ETHERSCAN_KEY
+        url: String(`https://eth-mainnet.alchemyapi.io/v2/...`),
+        apiKey: `...`
     },
     paths: {
         sources: "./contracts",
