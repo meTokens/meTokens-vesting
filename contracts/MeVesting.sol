@@ -1,39 +1,61 @@
 // SPDX-License-Identifier: MIT
-
-pragma solidity ^0.5.12;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./libs/IERC20.sol";
-import "./libs/IERC1620.sol";
-import "./libs/CarefulMath.sol";
-import "./libs/Types.sol";
+import "./IMeVesting.sol";
+
+import "./CarefulMath.sol";
 
 
-contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
-    /*** Storage Properties ***/
+/// @title ME 3-year vesting contract
+/// @author @CBobRobison, @carlfarterson, @cryptounico
+/// @notice vests ME for 3 years to key meTokens stakeholders, claimable upon governance "transferability" vote
+contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
 
     /// @notice check to enable stream withdrawals
     bool public withdrawable;
 
-    /// @notice address that can enable withdrawals
-    address public gov;
-
-    /**
-     * @notice Counter for new stream ids.
-     */
+    /// @notice Counter for new stream ids.
     uint256 public nextStreamId;
+
+    struct Stream {
+        uint256 deposit;
+        uint256 ratePerSecond;
+        uint256 remainingBalance;
+        uint256 startTime;
+        uint256 stopTime;
+        address recipient;
+        address sender;
+        address tokenAddress;
+        bool isEntity;
+    }
+
+    struct WithdrawFromStreamLocalVars {
+        MathError mathErr;
+    }
+
+    struct CreateStreamLocalVars {
+        MathError mathErr;
+        uint256 duration;
+        uint256 ratePerSecond;
+    }
+
+    struct BalanceOfLocalVars {
+        MathError mathErr;
+        uint256 recipientBalance;
+        uint256 withdrawalAmount;
+        uint256 senderBalance;
+    }
 
     /**
      * @notice The stream objects identifiable by their unsigned integer ids.
      */
-    mapping(uint256 => Types.Stream) private streams;
+    mapping(uint256 => Stream) private streams;
 
     /*** Modifiers ***/
-
-    /**
-     * @dev Throws if the caller is not the sender of the recipient of the stream.
-     */
+    /// @dev Throws if the caller is not the sender of the recipient of the stream.
     modifier onlySenderOrRecipient(uint256 streamId) {
         require(
             msg.sender == streams[streamId].sender || msg.sender == streams[streamId].recipient,
@@ -42,29 +64,18 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         _;
     }
 
-    /**
-     * @dev Throws if the provided id does not point to a valid stream.
-     */
+    /// @dev Throws if the provided id does not point to a valid stream.
     modifier streamExists(uint256 streamId) {
         require(streams[streamId].isEntity, "stream does not exist");
         _;
     }
-
-    /*** Contract Logic Starts Here */
 
     constructor() public {
         nextStreamId = 1;
         gov = msg.sender;
     }
 
-    /*** View Functions ***/
-
-    /**
-     * @notice Returns the compounding stream with all its properties.
-     * @dev Throws if the id does not point to a valid stream.
-     * @param streamId The id of the stream to query.
-     * @return The stream object as an array of info.
-     */
+    /// @inheritdoc IMeVesting
     function getStream(uint256 streamId)
         external
         view
@@ -90,37 +101,31 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         ratePerSecond = streams[streamId].ratePerSecond;
     }
 
-    /**
-     * @notice Returns either the delta in seconds between `block.timestamp` and `startTime` or
-     *  between `stopTime` and `startTime, whichever is smaller. If `block.timestamp` is before
-     *  `startTime`, it returns 0.
-     * @dev Throws if the id does not point to a valid stream.
-     * @param streamId The id of the stream for which to query the delta.
-     * @return The time delta in seconds.
-     */
-    function deltaOf(uint256 streamId) public view streamExists(streamId) returns (uint256 delta) {
-        Types.Stream memory stream = streams[streamId];
+
+    /// @inheritdoc IMeVesting
+    function deltaOf(uint256 streamId)
+        public
+        view
+        streamExists(streamId)
+        override
+        returns (uint256 delta)
+    {
+        Stream memory stream = streams[streamId];
         if (block.timestamp <= stream.startTime) return 0;
         if (block.timestamp < stream.stopTime) return block.timestamp - stream.startTime;
         return stream.stopTime - stream.startTime;
     }
 
-    struct BalanceOfLocalVars {
-        MathError mathErr;
-        uint256 recipientBalance;
-        uint256 withdrawalAmount;
-        uint256 senderBalance;
-    }
 
-    /**
-     * @notice Returns the available funds for the given stream id and address.
-     * @dev Throws if the id does not point to a valid stream.
-     * @param streamId The id of the stream for which to query the balance.
-     * @param who The address for which to query the balance.
-     * @return The total funds allocated to `who` as uint256.
-     */
-    function balanceOf(uint256 streamId, address who) public view streamExists(streamId) returns (uint256 balance) {
-        Types.Stream memory stream = streams[streamId];
+    /// @inheritdoc IMeVesting
+    function balanceOf(uint256 streamId, address who)
+        public
+        view
+        streamExists(streamId)
+        override
+        returns (uint256 balance) 
+    {
+        Stream memory stream = streams[streamId];
         BalanceOfLocalVars memory vars;
 
         uint256 delta = deltaOf(streamId);
@@ -150,33 +155,8 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         return 0;
     }
 
-    /*** Public Effects & Interactions Functions ***/
 
-    struct CreateStreamLocalVars {
-        MathError mathErr;
-        uint256 duration;
-        uint256 ratePerSecond;
-    }
-
-    /**
-     * @notice Creates a new stream funded by `msg.sender` and paid towards `recipient`.
-     * @dev Throws if paused.
-     *  Throws if the recipient is the zero address, the contract itself or the caller.
-     *  Throws if the deposit is 0.
-     *  Throws if the start time is before `block.timestamp`.
-     *  Throws if the stop time is before the start time.
-     *  Throws if the duration calculation has a math error.
-     *  Throws if the deposit is smaller than the duration.
-     *  Throws if the deposit is not a multiple of the duration.
-     *  Throws if the rate calculation has a math error.
-     *  Throws if the next stream id calculation has a math error.
-     *  Throws if the contract is not allowed to transfer enough tokens.
-     *  Throws if there is a token transfer failure.
-     * @param recipient The address towards which the money is streamed.
-     * @param deposit The amount of money to be streamed.
-     * @param tokenAddress The ERC20 token to use as streaming currency.
-     * @return The uint256 id of the newly created stream.
-     */
+    /// @inheritdoc IMeVesting
     function createStream(address recipient, uint256 deposit, address tokenAddress) public returns (uint256) {
         require(recipient != address(0x00), "stream to the zero address");
         require(recipient != address(this), "stream to the contract itself");
@@ -205,7 +185,7 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
 
         /* Create and store the stream object. */
         uint256 streamId = nextStreamId;
-        streams[streamId] = Types.Stream({
+        streams[streamId] = Stream({
             remainingBalance: deposit,
             deposit: deposit,
             isEntity: true,
@@ -226,30 +206,19 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         return streamId;
     }
 
-    struct WithdrawFromStreamLocalVars {
-        MathError mathErr;
-    }
 
-    /**
-     * @notice Withdraws from the contract to the recipient's account.
-     * @dev Throws if the id does not point to a valid stream.
-     *  Throws if the caller is not the sender or the recipient of the stream.
-     *  Throws if the amount exceeds the available balance.
-     *  Throws if there is a token transfer failure.
-     * @param streamId The id of the stream to withdraw tokens from.
-     * @param amount The amount of tokens to withdraw.
-     * @return bool true=success, otherwise false.
-     */
+    /// @inheritdoc IMeVesting
     function withdrawFromStream(uint256 streamId, uint256 amount)
         external
         nonReentrant
         streamExists(streamId)
         onlySenderOrRecipient(streamId)
+        override
         returns (bool)
     {
         require(withdrawable, "not withdrawable");
         require(amount > 0, "amount is zero");
-        Types.Stream memory stream = streams[streamId];
+        Stream memory stream = streams[streamId];
         WithdrawFromStreamLocalVars memory vars;
 
         uint256 balance = balanceOf(streamId, stream.recipient);
@@ -268,14 +237,8 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         emit WithdrawFromStream(streamId, stream.recipient, amount);
     }
 
-    /**
-     * @notice Cancels the stream and transfers the tokens back on a pro rata basis.
-     * @dev Throws if the id does not point to a valid stream.
-     *  Throws if the caller is not the sender or the recipient of the stream.
-     *  Throws if there is a token transfer failure.
-     * @param streamId The id of the stream to cancel.
-     * @return bool true=success, otherwise false.
-     */
+
+    /// @inheritdoc IMeVesting
     function cancelStream(uint256 streamId)
         external
         nonReentrant
@@ -284,7 +247,7 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         returns (bool)
     {
         require(withdrawable, "not withdrawable");
-        Types.Stream memory stream = streams[streamId];
+        Stream memory stream = streams[streamId];
         uint256 senderBalance = balanceOf(streamId, stream.sender);
         uint256 recipientBalance = balanceOf(streamId, stream.recipient);
 
@@ -298,14 +261,9 @@ contract MeVesting is IERC1620, ReentrancyGuard, CarefulMath {
         emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
     }
 
-    function setGov(address _gov) public {
-        require(msg.sender == gov, "gov: must gov");
-        gov = _gov;
-    }
-
-    function turnOnWithdrawals() public {
-        require(msg.sender == gov, "!gov");
+    function turnOnWithdrawals() onlyOwner public {
         require(!withdrawable, "withdrawals already enabled");
         withdrawable = true;
+        emit TurnOnWithdrawals();
     }
 }

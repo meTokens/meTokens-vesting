@@ -9,7 +9,7 @@ require("dotenv").config();
 module.exports = {
     solidity: {
         compilers: [
-            { version: "0.5.12" }
+            { version: "0.8.0" }
         ]
     },
     mocha: {
