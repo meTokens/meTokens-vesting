@@ -6,8 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./IMeVesting.sol";
 
-import "./CarefulMath.sol";
-
 
 /// @title ME 3-year vesting contract
 /// @author @CBobRobison, @carlfarterson, @cryptounico
@@ -32,29 +30,11 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
         bool isEntity;
     }
 
-    struct WithdrawFromStreamLocalVars {
-        MathError mathErr;
-    }
-
-    struct CreateStreamLocalVars {
-        MathError mathErr;
-        uint256 duration;
-        uint256 ratePerSecond;
-    }
-
-    struct BalanceOfLocalVars {
-        MathError mathErr;
-        uint256 recipientBalance;
-        uint256 withdrawalAmount;
-        uint256 senderBalance;
-    }
-
     /**
      * @notice The stream objects identifiable by their unsigned integer ids.
      */
     mapping(uint256 => Stream) private streams;
 
-    /*** Modifiers ***/
     /// @dev Throws if the caller is not the sender of the recipient of the stream.
     modifier onlySenderOrRecipient(uint256 streamId) {
         require(
@@ -68,11 +48,6 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
     modifier streamExists(uint256 streamId) {
         require(streams[streamId].isEntity, "stream does not exist");
         _;
-    }
-
-    constructor() public {
-        nextStreamId = 1;
-        gov = msg.sender;
     }
 
     /// @inheritdoc IMeVesting
@@ -123,14 +98,11 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
         view
         streamExists(streamId)
         override
-        returns (uint256 balance) 
+        returns (uint256) 
     {
         Stream memory stream = streams[streamId];
-        BalanceOfLocalVars memory vars;
 
-        uint256 delta = deltaOf(streamId);
-        (vars.mathErr, vars.recipientBalance) = mulUInt(delta, stream.ratePerSecond);
-        require(vars.mathErr == MathError.NO_ERROR, "recipient balance calculation error");
+        uint256 recipientBalance = deltaOf(streamId) * stream.ratePerSecond;
 
         /*
          * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
@@ -138,19 +110,14 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
          * streamed until now.
          */
         if (stream.deposit > stream.remainingBalance) {
-            (vars.mathErr, vars.withdrawalAmount) = subUInt(stream.deposit, stream.remainingBalance);
-            assert(vars.mathErr == MathError.NO_ERROR);
-            (vars.mathErr, vars.recipientBalance) = subUInt(vars.recipientBalance, vars.withdrawalAmount);
-            /* `withdrawalAmount` cannot and should not be bigger than `recipientBalance`. */
-            assert(vars.mathErr == MathError.NO_ERROR);
+            uint256 withdrawalAmount = stream.deposit - stream.remainingBalance;
+            recipientBalance -= withdrawalAmount;
         }
 
-        if (who == stream.recipient) return vars.recipientBalance;
+        if (who == stream.recipient) return recipientBalance;
         if (who == stream.sender) {
-            (vars.mathErr, vars.senderBalance) = subUInt(stream.remainingBalance, vars.recipientBalance);
-            /* `recipientBalance` cannot and should not be bigger than `remainingBalance`. */
-            assert(vars.mathErr == MathError.NO_ERROR);
-            return vars.senderBalance;
+            uint256 senderBalance = stream.remainingBalance - recipientBalance;
+            return senderBalance;
         }
         return 0;
     }
@@ -158,7 +125,7 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
 
     /// @inheritdoc IMeVesting
     function createStream(address recipient, uint256 deposit, address tokenAddress) public returns (uint256) {
-        require(recipient != address(0x00), "stream to the zero address");
+        require(recipient != address(0), "stream to the zero address");
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
@@ -168,28 +135,24 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
 
         require(stopTime > startTime, "stop time before the start time");
 
-        CreateStreamLocalVars memory vars;
-        (vars.mathErr, vars.duration) = subUInt(stopTime, startTime);
-        /* `subUInt` can only return MathError.INTEGER_UNDERFLOW but we know `stopTime` is higher than `startTime`. */
-        assert(vars.mathErr == MathError.NO_ERROR);
+        uint256 duration = stopTime - startTime;
 
         /* Without this, the rate per second would be zero. */
-        require(deposit >= vars.duration, "deposit smaller than time delta");
+        require(deposit >= duration, "deposit smaller than time delta");
 
         /* This condition avoids dealing with remainders */
-        require(deposit % vars.duration == 0, "deposit not multiple of time delta");
+        require(deposit % duration == 0, "deposit not multiple of time delta");
 
-        (vars.mathErr, vars.ratePerSecond) = divUInt(deposit, vars.duration);
-        /* `divUInt` can only return MathError.DIVISION_BY_ZERO but we know `duration` is not zero. */
-        assert(vars.mathErr == MathError.NO_ERROR);
+        uint256 ratePerSecond = deposit / duration;
 
-        /* Create and store the stream object. */
-        uint256 streamId = nextStreamId;
-        streams[streamId] = Stream({
+        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), deposit), "token transfer failure");
+
+        //  TODO: should streams be mapped to their index, or start at 1?
+        streams[++streamId] = Stream({
             remainingBalance: deposit,
             deposit: deposit,
             isEntity: true,
-            ratePerSecond: vars.ratePerSecond,
+            ratePerSecond: ratePerSecond,
             recipient: recipient,
             sender: msg.sender,
             startTime: startTime,
@@ -197,12 +160,8 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
             tokenAddress: tokenAddress
         });
 
-        /* Increment the next stream id. */
-        (vars.mathErr, nextStreamId) = addUInt(nextStreamId, uint256(1));
-        require(vars.mathErr == MathError.NO_ERROR, "next stream id calculation error");
-
-        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), deposit), "token transfer failure");
         emit CreateStream(streamId, msg.sender, recipient, deposit, tokenAddress, startTime, stopTime);
+
         return streamId;
     }
 
@@ -218,22 +177,17 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
     {
         require(withdrawable, "not withdrawable");
         require(amount > 0, "amount is zero");
-        Stream memory stream = streams[streamId];
-        WithdrawFromStreamLocalVars memory vars;
+        
+        Stream storage stream = streams[streamId];
 
         uint256 balance = balanceOf(streamId, stream.recipient);
         require(balance >= amount, "amount exceeds the available balance");
 
-        (vars.mathErr, streams[streamId].remainingBalance) = subUInt(stream.remainingBalance, amount);
-        /**
-         * `subUInt` can only return MathError.INTEGER_UNDERFLOW but we know that `remainingBalance` is at least
-         * as big as `amount`.
-         */
-        assert(vars.mathErr == MathError.NO_ERROR);
-
-        if (streams[streamId].remainingBalance == 0) delete streams[streamId];
+        stream.remainingBalance -= amount;
+        if (stream.remainingBalance == 0) {delete streams[streamId];}
 
         require(IERC20(stream.tokenAddress).transfer(stream.recipient, amount), "token transfer failure");
+
         emit WithdrawFromStream(streamId, stream.recipient, amount);
     }
 
@@ -247,6 +201,7 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
         returns (bool)
     {
         require(withdrawable, "not withdrawable");
+
         Stream memory stream = streams[streamId];
         uint256 senderBalance = balanceOf(streamId, stream.sender);
         uint256 recipientBalance = balanceOf(streamId, stream.recipient);
@@ -254,9 +209,12 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
         delete streams[streamId];
 
         IERC20 token = IERC20(stream.tokenAddress);
-        if (recipientBalance > 0)
+        if (recipientBalance > 0) {
             require(token.transfer(stream.recipient, recipientBalance), "recipient token transfer failure");
-        if (senderBalance > 0) require(token.transfer(stream.sender, senderBalance), "sender token transfer failure");
+        }
+        if (senderBalance > 0) {
+            require(token.transfer(stream.sender, senderBalance), "sender token transfer failure");
+        }
 
         emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
     }
