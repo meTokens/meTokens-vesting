@@ -9,7 +9,7 @@ import "./IMeVesting.sol";
 
 
 /// @title ME 3-year vesting contract
-/// @author @CBobRobison, @carlfarterson, @cryptounico
+/// @author @CBobRobison, @carlfarterson, @bunsdev
 /// @notice vests ME for 3 years to key meTokens stakeholders, claimable upon governance "transferability" vote
 contract MeVesting is IMeVesting, ReentrancyGuard, Ownable {
 
