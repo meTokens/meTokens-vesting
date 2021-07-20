@@ -7,7 +7,6 @@ require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
 module.exports = {
-    defaultNetwork: "mainnet",
     solidity: {
         compilers: [
             { version: "0.8.0" }
@@ -18,13 +17,13 @@ module.exports = {
     },
     networks: {
         mainnet: {
-            url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+            url: String(`https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`),
             accounts: [`${process.env.PRIVATE_KEY}`,]
         },
         rinkeby: {
-            url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+            url: String(`https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`),
             accounts: [`${process.env.PRIVATE_KEY}`,]
-        },
+        }
     },
     etherscan: {
         url: String(`https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`),

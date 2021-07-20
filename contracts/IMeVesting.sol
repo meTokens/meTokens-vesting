@@ -51,7 +51,14 @@ interface IMeVesting {
      * @notice Returns the compounding stream with all its properties.
      * @dev Throws if the id does not point to a valid stream.
      * @param streamId The id of the stream to query.
-     * @return The stream object as an array of info.
+     * @return sender
+     * @return recipient
+     * @return deposit
+     * @return token
+     * @return startTime
+     * @return stopTime
+     * @return remainingBalance
+     * @return ratePerSecond
      */
     function getStream(uint256 streamId) external view
         returns (

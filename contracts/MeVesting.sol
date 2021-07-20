@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IMeVesting.sol";
 
@@ -10,13 +11,13 @@ import "./IMeVesting.sol";
 /// @title ME 3-year vesting contract
 /// @author @CBobRobison, @carlfarterson, @cryptounico
 /// @notice vests ME for 3 years to key meTokens stakeholders, claimable upon governance "transferability" vote
-contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
+contract MeVesting is IMeVesting, ReentrancyGuard, Ownable {
 
     /// @notice check to enable stream withdrawals
     bool public withdrawable;
 
     /// @notice Counter for new stream ids.
-    uint256 public nextStreamId;
+    uint256 public streamId;
 
     struct Stream {
         uint256 deposit;
@@ -30,31 +31,30 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
         bool isEntity;
     }
 
-    /**
-     * @notice The stream objects identifiable by their unsigned integer ids.
-     */
+    // @notice The stream objects identifiable by their unsigned integer ids.
     mapping(uint256 => Stream) private streams;
 
     /// @dev Throws if the caller is not the sender of the recipient of the stream.
-    modifier onlySenderOrRecipient(uint256 streamId) {
+    modifier onlySenderOrRecipient(uint256 _streamId) {
         require(
-            msg.sender == streams[streamId].sender || msg.sender == streams[streamId].recipient,
+            msg.sender == streams[_streamId].sender || msg.sender == streams[_streamId].recipient,
             "caller is not the sender or the recipient of the stream"
         );
         _;
     }
 
     /// @dev Throws if the provided id does not point to a valid stream.
-    modifier streamExists(uint256 streamId) {
-        require(streams[streamId].isEntity, "stream does not exist");
+    modifier streamExists(uint256 _streamId) {
+        require(streams[_streamId].isEntity, "stream does not exist");
         _;
     }
 
     /// @inheritdoc IMeVesting
-    function getStream(uint256 streamId)
+    function getStream(uint256 _streamId)
         external
         view
-        streamExists(streamId)
+        override
+        streamExists(_streamId)
         returns (
             address sender,
             address recipient,
@@ -66,26 +66,26 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
             uint256 ratePerSecond
         )
     {
-        sender = streams[streamId].sender;
-        recipient = streams[streamId].recipient;
-        deposit = streams[streamId].deposit;
-        tokenAddress = streams[streamId].tokenAddress;
-        startTime = streams[streamId].startTime;
-        stopTime = streams[streamId].stopTime;
-        remainingBalance = streams[streamId].remainingBalance;
-        ratePerSecond = streams[streamId].ratePerSecond;
+        sender = streams[_streamId].sender;
+        recipient = streams[_streamId].recipient;
+        deposit = streams[_streamId].deposit;
+        tokenAddress = streams[_streamId].tokenAddress;
+        startTime = streams[_streamId].startTime;
+        stopTime = streams[_streamId].stopTime;
+        remainingBalance = streams[_streamId].remainingBalance;
+        ratePerSecond = streams[_streamId].ratePerSecond;
     }
 
 
     /// @inheritdoc IMeVesting
-    function deltaOf(uint256 streamId)
+    function deltaOf(uint256 _streamId)
         public
         view
-        streamExists(streamId)
+        streamExists(_streamId)
         override
         returns (uint256 delta)
     {
-        Stream memory stream = streams[streamId];
+        Stream memory stream = streams[_streamId];
         if (block.timestamp <= stream.startTime) return 0;
         if (block.timestamp < stream.stopTime) return block.timestamp - stream.startTime;
         return stream.stopTime - stream.startTime;
@@ -93,16 +93,16 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
 
 
     /// @inheritdoc IMeVesting
-    function balanceOf(uint256 streamId, address who)
+    function balanceOf(uint256 _streamId, address who)
         public
         view
-        streamExists(streamId)
         override
+        streamExists(_streamId)
         returns (uint256) 
     {
-        Stream memory stream = streams[streamId];
+        Stream memory stream = streams[_streamId];
 
-        uint256 recipientBalance = deltaOf(streamId) * stream.ratePerSecond;
+        uint256 recipientBalance = deltaOf(_streamId) * stream.ratePerSecond;
 
         /*
          * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
@@ -114,7 +114,7 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
             recipientBalance -= withdrawalAmount;
         }
 
-        if (who == stream.recipient) return recipientBalance;
+        if (who == stream.recipient) {return recipientBalance;}
         if (who == stream.sender) {
             uint256 senderBalance = stream.remainingBalance - recipientBalance;
             return senderBalance;
@@ -124,7 +124,11 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
 
 
     /// @inheritdoc IMeVesting
-    function createStream(address recipient, uint256 deposit, address tokenAddress) public returns (uint256) {
+    function createStream(address recipient,uint256 deposit,address tokenAddress)
+        public
+        override
+        returns (uint256)
+    {
         require(recipient != address(0), "stream to the zero address");
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
@@ -167,46 +171,47 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
 
 
     /// @inheritdoc IMeVesting
-    function withdrawFromStream(uint256 streamId, uint256 amount)
+    function withdrawFromStream(uint256 _streamId, uint256 amount)
         external
         nonReentrant
-        streamExists(streamId)
-        onlySenderOrRecipient(streamId)
+        streamExists(_streamId)
+        onlySenderOrRecipient(_streamId)
         override
         returns (bool)
     {
         require(withdrawable, "not withdrawable");
         require(amount > 0, "amount is zero");
         
-        Stream storage stream = streams[streamId];
+        Stream storage stream = streams[_streamId];
 
-        uint256 balance = balanceOf(streamId, stream.recipient);
+        uint256 balance = balanceOf(_streamId, stream.recipient);
         require(balance >= amount, "amount exceeds the available balance");
 
         stream.remainingBalance -= amount;
-        if (stream.remainingBalance == 0) {delete streams[streamId];}
+        if (stream.remainingBalance == 0) {delete streams[_streamId];}
 
         require(IERC20(stream.tokenAddress).transfer(stream.recipient, amount), "token transfer failure");
 
-        emit WithdrawFromStream(streamId, stream.recipient, amount);
+        emit WithdrawFromStream(_streamId, stream.recipient, amount);
     }
 
 
     /// @inheritdoc IMeVesting
-    function cancelStream(uint256 streamId)
+    function cancelStream(uint256 _streamId)
         external
+        override
         nonReentrant
-        streamExists(streamId)
-        onlySenderOrRecipient(streamId)
+        streamExists(_streamId)
+        onlySenderOrRecipient(_streamId)
         returns (bool)
     {
         require(withdrawable, "not withdrawable");
 
-        Stream memory stream = streams[streamId];
-        uint256 senderBalance = balanceOf(streamId, stream.sender);
-        uint256 recipientBalance = balanceOf(streamId, stream.recipient);
+        Stream memory stream = streams[_streamId];
+        uint256 senderBalance = balanceOf(_streamId, stream.sender);
+        uint256 recipientBalance = balanceOf(_streamId, stream.recipient);
 
-        delete streams[streamId];
+        delete streams[_streamId];
 
         IERC20 token = IERC20(stream.tokenAddress);
         if (recipientBalance > 0) {
@@ -216,7 +221,7 @@ contract MeVesting is IMeVesting, ReentrancyGuard, CarefulMath, Ownable {
             require(token.transfer(stream.sender, senderBalance), "sender token transfer failure");
         }
 
-        emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
+        emit CancelStream(_streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
     }
 
     function turnOnWithdrawals() onlyOwner public {
