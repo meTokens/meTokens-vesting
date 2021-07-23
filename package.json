@@ -1,17 +1,4 @@
 {
-  "name": "metokens-vesting",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "migrate": "truffle migrate --reset",
-    "migrate:rinkeby": "truffle migrate --reset --network rinkeby",
-    "compile": "truffle compile",
-    "compile:rinkeby": "truffle compile --network rinkeby",
-    "test": "npx buidler test",
-    "coverage": "npx buidler coverage",
-    "flatten": "truffle-flattener contracts/MeVesting.sol > flats/MeVesting_flat.sol",
-    "verify": "truffle run verify MeVesting --network rinkeby --license SPDX-License-Identifier"
-  },
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0",
     "@openzeppelin/test-helpers": "^0.5.6",
