@@ -9,7 +9,7 @@ import "./IMeVesting.sol";
 
 
 /// @title ME 3-year vesting contract
-/// @author @CBobRobison, @carlfarterson, @bunsdev
+/// @author @CBobRobison, @cartercarlson, @bunsdev
 /// @notice vests ME for 3 years to key meTokens stakeholders, claimable upon governance "transferability" vote
 contract MeVesting is IMeVesting, ReentrancyGuard, Ownable {
 
@@ -29,6 +29,11 @@ contract MeVesting is IMeVesting, ReentrancyGuard, Ownable {
         address sender;
         address tokenAddress;
         bool isEntity;
+    }
+
+    uint256 public anchorDate;
+    function setAnchorDate(uint256 _anchorDate) external onlyOwner {
+        anchorDate = _anchorDate;
     }
 
     // @notice The stream objects identifiable by their unsigned integer ids.
@@ -124,7 +129,14 @@ contract MeVesting is IMeVesting, ReentrancyGuard, Ownable {
 
 
     /// @inheritdoc IMeVesting
-    function createStream(address recipient,uint256 deposit,address tokenAddress)
+    function createStream(
+        address recipient,
+        uint256 deposit,
+        address tokenAddress,
+        uint256 _anchorDate,
+        uint256 _subStart,
+        uint256 _addEnd
+    )
         public
         override
         returns (uint256)
@@ -133,9 +145,18 @@ contract MeVesting is IMeVesting, ReentrancyGuard, Ownable {
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
-
-        uint256 startTime = block.timestamp - 5392000;
-        uint256 stopTime = block.timestamp + 1095 days;
+        
+        uint256 startTime;
+        uint256 stopTime;
+        if (_subStart == 0 || _addEnd == 0) {
+            // Assume it's three years and anchor date already set
+            require(anchorDate != 0, "anchor date !set");
+            startTime = anchorDate - 5392000;
+            stopTime = anchorDate + 1095 days;
+        } else {
+            startTime = _anchorDate - _subStart;
+            stopTime = _anchorDate + _addEnd;
+        }
 
         require(stopTime > startTime, "stop time before the start time");
 

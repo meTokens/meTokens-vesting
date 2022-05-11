@@ -89,12 +89,18 @@ interface IMeVesting {
      * @param recipient The address towards which the money is streamed.
      * @param deposit The amount of money to be streamed.
      * @param tokenAddress The ERC20 token to use as streaming currency.
+     * @param _anchorDate Used for setting a custom stream outside of traditonal vester schedule
+     * @param _subStart Time to subtract from anchorDate for the stream if _anchorDate used
+     * @param _addEnd Time to add to the anchor date for the stream if _anchorDate used
      * @return streamId The uint256 id of the newly created stream.
      */
     function createStream(
         address recipient,
         uint256 deposit,
-        address tokenAddress
+        address tokenAddress,
+        uint256 _anchorDate,
+        uint256 _subStart,
+        uint256 _addEnd
     ) external returns (uint256 streamId);
 
     /**
